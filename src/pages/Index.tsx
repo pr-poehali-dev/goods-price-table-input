@@ -63,29 +63,25 @@ const Index = () => {
     return products.reduce((acc, p) => acc + p.sum, 0);
   };
 
-  const exportToCSV = () => {
-    const headers = ['Наименование', 'Количество', 'Цена', 'Сумма'];
-    const rows = products.map(p => [
-      p.name || '-',
-      p.quantity || '0',
-      p.price || '0',
-      p.sum.toFixed(2)
-    ]);
+  const exportToJSON = () => {
+    const exportData = {
+      дата: new Date().toLocaleDateString('ru-RU'),
+      товары: products.map(p => ({
+        наименование: p.name || '-',
+        количество: parseFloat(p.quantity) || 0,
+        цена: parseFloat(p.price) || 0,
+        сумма: p.sum
+      })),
+      итого: getTotalSum()
+    };
     
-    rows.push(['', '', 'ИТОГО:', getTotalSum().toFixed(2)]);
-    
-    const csvContent = [
-      headers.join(';'),
-      ...rows.map(row => row.join(';'))
-    ].join('\n');
-    
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const jsonContent = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     
     link.setAttribute('href', url);
-    link.setAttribute('download', `товары_${new Date().toLocaleDateString('ru-RU')}.csv`);
+    link.setAttribute('download', `товары_${new Date().toLocaleDateString('ru-RU')}.json`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -93,7 +89,7 @@ const Index = () => {
     
     toast({
       title: "Экспорт выполнен",
-      description: "Файл готов для импорта в 1С"
+      description: "Файл JSON готов для импорта в 1С"
     });
   };
 
@@ -120,12 +116,12 @@ const Index = () => {
             </Button>
             
             <Button
-              onClick={exportToCSV}
+              onClick={exportToJSON}
               variant="outline"
               className="border-primary text-primary hover:bg-primary/10"
             >
               <Icon name="Download" size={18} className="mr-2" />
-              Экспорт в CSV для 1С
+              Экспорт в JSON для 1С
             </Button>
           </div>
 
