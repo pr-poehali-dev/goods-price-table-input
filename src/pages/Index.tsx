@@ -19,6 +19,8 @@ const Index = () => {
     { id: '1', name: '', quantity: '', price: '', sum: 0 }
   ]);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   const addRow = () => {
     const newProduct: Product = {
@@ -64,8 +66,8 @@ const Index = () => {
     return products.reduce((acc, p) => acc + p.sum, 0);
   };
 
-  const exportToJSON = () => {
-    const exportData = {
+  const prepareExportData = () => {
+    return {
       дата: new Date().toLocaleDateString('ru-RU'),
       адрес_доставки: deliveryAddress || 'Не указан',
       товары: products.map(p => ({
@@ -76,7 +78,10 @@ const Index = () => {
       })),
       итого: getTotalSum()
     };
-    
+  };
+
+  const exportToJSON = () => {
+    const exportData = prepareExportData();
     const jsonContent = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement('a');
@@ -95,6 +100,47 @@ const Index = () => {
     });
   };
 
+  const sendTo1C = async () => {
+    if (!baseUrl) {
+      toast({
+        title: "Ошибка",
+        description: "Укажите адрес базы 1С",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSending(true);
+    const exportData = prepareExportData();
+
+    try {
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Отправка выполнена",
+          description: "Данные успешно отправлены в 1С"
+        });
+      } else {
+        throw new Error(`Ошибка сервера: ${response.status}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка отправки",
+        description: error instanceof Error ? error.message : "Не удалось отправить данные в 1С",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -108,19 +154,32 @@ const Index = () => {
         </div>
 
         <Card className="p-6 shadow-lg">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Адрес доставки
-            </label>
-            <Input
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-              placeholder="Введите адрес доставки"
-              className="max-w-2xl border-slate-200 focus:border-primary"
-            />
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Адрес доставки
+              </label>
+              <Input
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                placeholder="Введите адрес доставки"
+                className="border-slate-200 focus:border-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Адрес базы 1С
+              </label>
+              <Input
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://example.com/api/1c"
+                className="border-slate-200 focus:border-primary"
+              />
+            </div>
           </div>
 
-          <div className="mb-4 flex justify-between items-center">
+          <div className="mb-4 flex flex-wrap gap-3 justify-between items-center">
             <Button
               onClick={addRow}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -129,14 +188,25 @@ const Index = () => {
               Добавить строку
             </Button>
             
-            <Button
-              onClick={exportToJSON}
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary/10"
-            >
-              <Icon name="Download" size={18} className="mr-2" />
-              Экспорт в JSON для 1С
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={exportToJSON}
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10"
+              >
+                <Icon name="Download" size={18} className="mr-2" />
+                Скачать JSON
+              </Button>
+              
+              <Button
+                onClick={sendTo1C}
+                disabled={isSending}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Icon name="Send" size={18} className="mr-2" />
+                {isSending ? 'Отправка...' : 'Отправить в 1С'}
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-lg border border-slate-200 overflow-hidden">
