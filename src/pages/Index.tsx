@@ -18,6 +18,7 @@ const Index = () => {
   const [products, setProducts] = useState<Product[]>([
     { id: '1', name: '', quantity: '', price: '', sum: 0 }
   ]);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
 
   const addRow = () => {
     const newProduct: Product = {
@@ -66,6 +67,7 @@ const Index = () => {
   const exportToJSON = () => {
     const exportData = {
       дата: new Date().toLocaleDateString('ru-RU'),
+      адрес_доставки: deliveryAddress || 'Не указан',
       товары: products.map(p => ({
         наименование: p.name || '-',
         количество: parseFloat(p.quantity) || 0,
@@ -106,6 +108,18 @@ const Index = () => {
         </div>
 
         <Card className="p-6 shadow-lg">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Адрес доставки
+            </label>
+            <Input
+              value={deliveryAddress}
+              onChange={(e) => setDeliveryAddress(e.target.value)}
+              placeholder="Введите адрес доставки"
+              className="max-w-2xl border-slate-200 focus:border-primary"
+            />
+          </div>
+
           <div className="mb-4 flex justify-between items-center">
             <Button
               onClick={addRow}
